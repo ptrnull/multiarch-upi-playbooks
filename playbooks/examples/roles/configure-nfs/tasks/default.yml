@@ -1,0 +1,30 @@
+---
+- name: configure nfs on bastion
+  hosts: s390x-bastion-workstation
+  tasks:
+  - name: install nfs packages
+    yum:
+      name: nfs-utils
+      state: latest
+  - name: start nfs services
+    service:
+      name: "{{ items }}"
+      state: started
+      enabled: true
+    with-items:
+     - nfs-server
+     - rpcbind
+     - nfs-lock
+     - nfs-idmap
+- name: allow traffic at 8080 for apache
+  tags: firewall
+  firewalld:
+    port: "{{ item[0] }}"
+    zone: "{{ item[1] }}"
+    state: enabled
+    permanent: true
+  with_nested:
+  - [ 'internal', 'public']
+  - [ 'nfs', 'rpc-bind', 'mountd']
+  notify:
+   - restart firewalld
