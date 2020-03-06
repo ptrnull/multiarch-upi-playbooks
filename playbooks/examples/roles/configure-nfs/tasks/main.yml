@@ -1,0 +1,110 @@
+---
+# tasks file for configure-nfs
+- name: install nfs packages
+  dnf:
+    name: nfs-utils
+    state: latest
+
+- name: start nfs services
+  service:
+    name: "{{ item }}"
+    state: started
+    enabled: true
+  with_items:
+    - nfs-server
+    - rpcbind
+    - nfs-idmapd
+
+- name: allow traffic for item[0] networks in item[1] services
+  tags: firewall
+  firewalld:
+    service: "{{ item[0] }}"
+    zone: "{{ item[1] }}"
+    state: enabled
+    permanent: yes
+  with_nested:
+    - [ 'nfs', 'rpc-bind', 'mountd']
+    - [ 'internal', 'public']
+  notify:
+    - restart firewalld
+
+- name: Create nfs directory
+  file:
+    path: "{{ nfs_dir }}"
+    state: directory
+    mode: '0755'
+
+- name: Create exports
+  template:
+    src: exports.j2
+    dest: /etc/exports
+    owner: root
+    group: root
+    mode: 0644
+  notify: reload nfs
+
+- name: Set fact l_pv_exists and l_pvc_exists
+  set_fact:
+    l_pv_exists: "{{ oc get pv }} {{ pv_name}}"
+    l_pvc_exists: "{{ oc get pvc }} {{ pvc_name}}"
+
+- name: create the temporal PV YAML file
+  template:
+    src: registry_pv.yaml.j2 
+    dest: /tmp/registry_pv.yaml
+    owner: root
+    group: root
+    mode: 0644
+  when: l_pv_exists.rc == 1
+    
+- name: load the pv if doesn't exist
+  k8s:
+    state: present
+    src: /tmp/registry_pv.yaml
+  when: l_pv_exists.rc == 1
+
+- name: Remove the temporal PV YAML file
+  file:
+    path: /tmp/registry_pv.yaml
+    state: absent
+  when: l_pv_exists.rc == 1
+
+- name: create the temporal PVC YAML file
+  template:
+    src: registry_pvc.yaml.j2 
+    dest: /tmp/registry_pvc.yaml
+    owner: root
+    group: root
+    mode: 0644
+  when: l_pvc_exists.rc == 1
+    
+- name: load the pv if doesn't exist
+  k8s:
+    state: present
+    src: /tmp/registry_pvc.yaml
+  when: l_pvc_exists.rc == 1
+
+- name: Remove the temporal PV YAML file
+  file:
+    path: /tmp/registry_pvc.yaml
+    state: absent
+  when: l_pvc_exists.rc == 1
+
+# edit the openshfit-image-registry and add the pvc
+# oc edit configs.imageregistry.operator.openshift.io
+#spec:
+#  storage:
+#    pvc:
+#      claim: "{{ pvc_name }}"
+#oc patch configs.imageregistry.operator.openshift.io cluster --type merge --patch '{"spec":{"storage":{"pvc":{"claim":"nfs-claim1"}}}}'
+- name: patch the imageregistry
+  k8s:
+    state: present
+    definition:
+      apiVersion: imageregistry.operator.openshift.io/v1
+      kind: Config
+      spec:
+        storage:
+          pvc:
+            claim: "{{ pvc_name }}"
+  when: l_pvc_exists.rc == 1

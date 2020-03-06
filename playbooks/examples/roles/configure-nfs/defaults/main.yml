@@ -1,0 +1,14 @@
+nfs_dir: "/nfs"
+nfs_modes: "(rw)"
+nfs_server: "192.168.122.135"
+pv_name: "pv0001"
+pv_size: "5Gi"
+pvc_name: "nfs-registry"
+pvc_size: "5Gi"
+pvc_namespace: "openshift-image-registry"
+nfs_exports: [
+  "{{ nfs_dir }} 192.168.0.3{{ nfs_modes }}",
+  "{{ nfs_dir }} 192.168.0.4{{ nfs_modes }}",
+  "{{ nfs_dir }} 192.168.0.5{{ nfs_modes }}",
+  "{{ nfs_dir }} 192.168.0.6{{ nfs_modes }}",
+  "{{ nfs_dir }} 192.168.0.7{{ nfs_modes }}" ]
