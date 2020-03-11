@@ -13,6 +13,7 @@ cache_rhcos_images: true
 # The download URL of the openshift-install binary
 openshift_install_binary_url: "https://mirror.openshift.com/pub/openshift-v4/s390x/clients/ocp/latest/openshift-install-linux-4.2.20.tar.gz"
 
+
 # The public DNS server to use.  This should be
 # changed to a DNS server on your intranet.
 dns_nameserver: 8.8.8.8
@@ -30,6 +31,7 @@ subnet_in_addr_name: "{{ subnet_cidr.split('.')[:3] | reverse | join('.') }}"
 bastion_private_ip_address: 192.168.0.1
 # This is the IP address of the bastion
 # when the bastion is configured as a dhcp
+
 # server.  Otherwise it is ignored.
 dhcp_server_ip_address: 192.168.0.1
 

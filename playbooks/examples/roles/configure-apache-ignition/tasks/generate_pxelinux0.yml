@@ -28,4 +28,3 @@
     chdir: "{{ bootfile_dest }}"
   shell: bash /root/s390-tools/netboot/mk-s390image rhcos-{{ rhcos_version }}-installer-kernel -r rhcos-{{ rhcos_version }}-installer-initramfs.img -p {{item}}-pxelinux.parm {{item}}-pxelinux.0
   when: install_mode == 'zkvm'
-
